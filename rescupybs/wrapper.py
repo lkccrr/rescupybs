@@ -1,6 +1,8 @@
 import argparse, os, re, platform, glob
 import matplotlib.pyplot as plt
+import numpy as np
 from rescupybs import plots, functions
+from rescupy.utils import read_field
 from rescupybs import __version__
 
 plt.rcParams['xtick.direction'] = 'in'
@@ -12,7 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description='Plot the band structure from rescuplus calculation result *.json file',
                                      epilog='''
 Example:
-rescupybs
+rescupybs -y -0.5 0.5 -b
 ''',
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-v', "--version",    action="version",      version="rescupybs "+__version__+" from "+os.path.dirname(__file__)+' (python'+platform.python_version()+')')
@@ -28,8 +30,13 @@ rescupybs
     parser.add_argument('-W', "--linewidth",  type=str, nargs='+',   default=['0.8'], help="linewidth, default 0.8")
     parser.add_argument('-c', "--color",      type=str,              nargs='+', default=[],
                                                                      help="plot colors: b, blue; g, green; r, red; c, cyan; m, magenta; y, yellow; k, black; w, white")
+    parser.add_argument('-m', "--modify",     type=int, nargs=2,     help='modify the bands overlap, the up or nonispin bands to exchange values')
+    parser.add_argument('-n', "--nbands",     type=int, nargs=2,     help='the down bands to exchange values')
     parser.add_argument('-i', "--input",      type=str,              nargs='+', default=[], help="plot figure from .json or .dat file")
     parser.add_argument('-o', "--output",     type=str,              default="BAND.png", help="plot figure filename")
+    parser.add_argument('-K', "--kpt",        type=int,              default=0, help="The kpoint in wavefunctions")
+    parser.add_argument('-B', "--band",       type=int,              default=0, help="The band in wavefunctions")
+    parser.add_argument('-S', "--spin",       type=int,              default=1, help="The up or down spin in wavefunctions")
     parser.add_argument('-l', "--labels",     type=str.upper,        nargs='+', default=[], help='labels for high-symmetry points')
     parser.add_argument('-f', "--font",       type=str,              default='STIXGeneral', help="font to use")
 
@@ -68,7 +75,7 @@ rescupybs
         vertical = args.vertical
 
     plt.rcParams['font.family'] = '%s'%args.font
-
+    pltname = os.path.split(os.getcwd())[-1]
     if not args.input:
         input = ['nano_bs_out.json']
     else:
@@ -77,34 +84,71 @@ rescupybs
     if len(input) == 1:
         if os.path.exists(input[0]):
             if input[0].split('.')[-1].lower() == 'json':
-                bs_file = input[0]
-                eigenvalues, chpts, labels, formula = functions.bs_json_read(bs_file)
+                if 'bs' in input[0].split('_'):
+                    bs_file = input[0]
+                    eigenvalues, chpts, labels = functions.bs_json_read(bs_file)
+                    if labels_f:
+                        labels = labels_f
+                    legend = args.legend
+                    if not legend:
+                        legend = [pltname]
+                    if len(chpts) > len(labels):
+                        labels = labels + [''] * (len(chpts) - len(labels))
+                    elif len(chpts) < len(labels):
+                        labels = labels[:len(chpts)]
+                    if len(eigenvalues) == 1:
+                        plots.Nispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                    elif len(eigenvalues) == 2 and not args.divided:
+                        plots.Ispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                    elif len(eigenvalues) == 2 and args.divided:
+                        plots.Dispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                elif 'wvf' in input[0].split('_'):
+                    functions.isosurfaces_wf(input[0], args.kpt, args.band, args.spin)
+
+            elif input[0].split('.')[-1].lower() == 'dat':
+                eigenvalues = functions.bs_dat_read(input)
+                chpts, labels = functions.labels_read("LABELS")
                 if labels_f:
                     labels = labels_f
                 legend = args.legend
                 if not legend:
-                    formula_l = [i.strip() for i in re.split('\(|\)', formula) if i.strip()]
-                    formula = ''
-                    for i in formula_l:
-                        if i.isdigit():
-                            for j in i:
-                                formula = formula + '$_' + j + '$'
-                        else:
-                            formula = formula + i
-                    legend = [formula]
+                    legend = [pltname]
                 if len(chpts) > len(labels):
                     labels = labels + [''] * (len(chpts) - len(labels))
                 elif len(chpts) < len(labels):
                     labels = labels[:len(chpts)]
-                if len(eigenvalues) == 1:
+                if args.modify:
+                    if args.modify[0] != args.modify[1]:
+                        functions.exchange(eigenvalues[0,:,args.modify[0]], eigenvalues[0,:,args.modify[1]])
+                        np.savetxt(input[0], eigenvalues[0])
+                    plots.Mnispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth)
+                else:
                     plots.Nispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
-                elif len(eigenvalues) == 2 and not args.divided:
+    elif len(input) == 2:
+        if input[0].split('.')[-1].lower() == 'dat' and input[1].split('.')[-1].lower() == 'dat':
+            eigenvalues = functions.bs_dat_read(input)
+            chpts, labels = functions.labels_read("LABELS")
+            if labels_f:
+                labels = labels_f
+            legend = args.legend
+            if not legend:
+                legend = [pltname]
+            if len(chpts) > len(labels):
+                labels = labels + [''] * (len(chpts) - len(labels))
+            elif len(chpts) < len(labels):
+                labels = labels[:len(chpts)]
+            if args.modify or args.nbands:
+                if args.modify and args.modify[0] != args.modify[1]:
+                    functions.exchange(eigenvalues[0,:,args.modify[0]], eigenvalues[0,:,args.modify[1]])
+                    np.savetxt(input[0], eigenvalues[0])
+                if args.nbands and args.nbands[0] != args.nbands[1]:
+                    functions.exchange(eigenvalues[0,:,args.nbands[0]], eigenvalues[0,:,args.nbands[1]])
+                    np.savetxt(input[1], eigenvalues[1])
+                plots.Mispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth)
+            else:
+                if len(eigenvalues) == 2 and not args.divided:
                     plots.Ispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
                 elif len(eigenvalues) == 2 and args.divided:
                     plots.Dispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
-
-#       elif args.input.split('.')[-1] == 'dat':
-
-                
 
 
