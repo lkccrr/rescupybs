@@ -8,5 +8,22 @@
 
 ### rescupybs
 
-Rescupybs is used for plotting the band structure from ***rescuplus*** calculation result *json* file.
+The <b style="color:green;"><i>rescupybs</b></i> is used for band structure plotting or isosurface file exporting from ***rescuplus*** calculation result <b style="color:darkred;"><i>\*.json</b></i> and <b style="color:darkred;"><i>\*.h5</b></i> files. The code will provide two scripts, <b style="color:blue;"><i>rescubs</b></i> for band structure plotting using ***rescuplus*** <b style="color:darkred;"><i>\*.json</b></i> or <b style="color:darkred;"><i>\*.dat</b></i> files, and <b style="color:blue;"><i>rescuiso</b></i> for isosurface file exporting in ***VESTA*** format from <b style="color:darkred;"><i>\*.json</b></i> and <b style="color:darkred;"><i>\*.h5</b></i> files.
+***
+<b style="color:blue;"><i>rescubs</b></i>
+* To execute <b style="color:blue;"><i>rescubs</b></i> <b style="color:red;"><i>\-h</b></i> for the parameters to use.
+* Example:
+```bash
+rescubs -h
+rescubs -i nano_bs_out_bs.dat -o band.png -l g m k g
+rescubs -b -l g m k g -y -1.2 1.2
+```
+***
+<b style="color:blue;"><i>rescuiso</b></i>
+* To execute <b style="color:blue;"><i>rescuiso</b></i> <b style="color:red;"><i>\-h</b></i> for the parameters to use.
+* Example:
+```bash
+rescuiso -h
+rescuiso -i nano_wvf_out.json -k 2 -b 2
+```
  

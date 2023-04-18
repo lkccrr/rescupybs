@@ -28,10 +28,12 @@ setup(
     install_requires=[
         'numpy>=1.22.0,<1.24',
         'matplotlib>=3.4.0',
+        'pint>=0.10',
         'rescupy>=1.0.0'
     ],
     entry_points={
-        'console_scripts': ['rescupybs=rescupybs.wrapper:main']
+        'console_scripts': ['rescubs=rescupybs.wrapper:main',
+                            'rescuiso=rescupybs.wrapper:surface']
     },
     packages=find_packages(),
     include_package_data=True
