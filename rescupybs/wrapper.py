@@ -181,13 +181,18 @@ rescuiso -b 1 -k 0
 ''',
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('-v', "--version", action="version", version="rescupybs "+__version__+" from "+os.path.dirname(__file__)+' (python'+platform.python_version()+')')
-    parser.add_argument('-i', "--input",   type=str,         nargs='+', default=[], help="export the wavefunction isosurface from .json and .h5 files")
+    parser.add_argument('-i', "--input",   type=str,         nargs='+', default=[],  help="export the wavefunction isosurface from .json and .h5 files")
     parser.add_argument('-o', "--output",  type=str,         help="wavefunction isosurface for VESTA format")
-    parser.add_argument('-k', "--kpt",     type=int,         default=0, help="The kpoint in wavefunctions")
-    parser.add_argument('-b', "--band",    type=int,         default=0, help="The band in wavefunctions")
+    parser.add_argument('-k', "--kpt",     type=int,         nargs='+', default=[0], help="The kpoint in wavefunctions")
+    parser.add_argument('-b', "--band",    type=int,         nargs='+', default=[0], help="The band in wavefunctions")
     parser.add_argument('-s', "--spin",    type=int,         default=1, help="The up or down spin in wavefunctions")
 
     args = parser.parse_args()
+
+    if args.kpt[0] < 0:
+        raise Exception("Illegal input of kpt.")
+    if args.band[0] < 0:
+        raise Exception("Illegal input of band.")
 
     if not args.input:
         input = ['nano_wvf_out']

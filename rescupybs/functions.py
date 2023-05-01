@@ -156,36 +156,160 @@ def get_vbm_cbm(eigenvalues_s):
 
 def isosurfaces_wf(input, output, kpt, band, spin):
     calc = TotalEnergy.read(input+'.json')
-    if not output:
-        output = input+'_'+str(kpt)+'_'+str(band)+'_'+str(spin)+'.vasp'
-    if calc.system.hamiltonian.ispin == 1:
-        att = f"wavefunctions/{kpt + 1}/field"
-    else:
-        if spin == 1:
-            att = f"wavefunctions/spin-up/{kpt + 1}/field"
+    kpt_l = len(kpt)
+    band_l = len(band)
+    if kpt_l == 1 and band_l == 1:
+        if not output:
+            output = input+'_'+str(kpt[0])+'_'+str(band[0])+'_'+str(spin)+'.vasp'
+        if calc.system.hamiltonian.ispin == 1:
+            att = f"wavefunctions/{kpt[0] + 1}/field"
         else:
-            att = f"wavefunctions/spin-down/{kpt + 1}/field"
-    filename = input+'.h5'
-    h = h5py.File(filename, mode="r")
-    fld = h[att][0:]
-    fld = np.transpose(fld, [i for i in range(fld.ndim - 1, -1, -1)])
-    fld = np.asfortranarray(fld)
-    fld = fld / ureg.bohr**1.5
-    fld = fld[::2, :] + 1j * fld[1::2, :]
-    fld.ito("angstrom ** -1.5")
-    if band < fld.shape[-1]:
-        fld = fld[..., band].magnitude
+            if spin == 1:
+                att = f"wavefunctions/spin-up/{kpt[0] + 1}/field"
+            else:
+                att = f"wavefunctions/spin-down/{kpt[0] + 1}/field"
+        print("Reading *.h5 file ...")
+        filename = input+'.h5'
+        h = h5py.File(filename, mode="r")
+        print("Processing data ...")
+        fld = h[att][0:]
+        fld = np.transpose(fld, [i for i in range(fld.ndim - 1, -1, -1)])
+        fld = np.asfortranarray(fld)
+        fld = fld / ureg.bohr**1.5
+        fld = fld[::2, :] + 1j * fld[1::2, :]
+        fld.ito("angstrom ** -1.5")
+        if band[0] < fld.shape[-1]:
+            fld = fld[..., band[0]].magnitude
+        else:
+            raise Exception("The band is out of range in *.h5 file.")
+        f_abs = np.abs(fld)
+        f_div = np.where(np.abs(np.angle(fld)) < np.pi / 2, f_abs, -f_abs)
+        f_div = np.reshape(f_div, (f_div.shape[-1], -1), order='F').T
+    elif kpt_l == 2 and band_l == 1:
+        if not kpt[0] < kpt[1]:
+            raise Exception("Illegal input of kpt.")
+        if not output:
+            output = input+'_'+str(kpt[0])+'-'+str(kpt[1])+'_'+str(band[0])+'_'+str(spin)+'.vasp'
+        nkpts = kpt[1] - kpt[0] + 1
+        att = [''] * nkpts
+        for i in range(kpt[0], kpt[1] + 1):
+            if calc.system.hamiltonian.ispin == 1:
+                att[i] = f"wavefunctions/{i + 1}/field"
+            else:
+                if spin == 1:
+                    att[i] = f"wavefunctions/spin-up/{i + 1}/field"
+                else:
+                    att[i] = f"wavefunctions/spin-down/{i + 1}/field"
+        print("Reading *.h5 file ...")
+        filename = input+'.h5'
+        h = h5py.File(filename, mode="r")
+        print("Processing data ...")
+        for i in range(nkpts):
+            fld_i = h[att[i]][0:]
+            if i == 0:
+                fld = fld_i
+            else:
+                fld += fld_i
+        fld = np.transpose(fld, [i for i in range(fld.ndim - 1, -1, -1)])
+        fld = np.asfortranarray(fld)
+        fld = fld / ureg.bohr**1.5
+        fld = fld[::2, :] + 1j * fld[1::2, :]
+        fld.ito("angstrom ** -1.5")
+        if band[0] < fld.shape[-1]:
+            fld = fld[..., band[0]].magnitude
+        else:
+            raise Exception("The band is out of range in *.h5 file.")
+        f_abs = np.abs(fld)
+        f_div = np.where(np.abs(np.angle(fld)) < np.pi / 2, f_abs, -f_abs)
+        f_div = np.reshape(f_div, (f_div.shape[-1], -1), order='F').T
+    elif kpt_l == 1 and band_l == 2:
+        if not band[0] < band[1]:
+            raise Exception("Illegal input of band.")
+        if not output:
+            output = input+'_'+str(kpt[0])+'_'+str(band[0])+'-'+str(band[1])+'_'+str(spin)+'.vasp'
+        if calc.system.hamiltonian.ispin == 1:
+            att = f"wavefunctions/{kpt[0] + 1}/field"
+        else:
+            if spin == 1:
+                att = f"wavefunctions/spin-up/{kpt[0] + 1}/field"
+            else:
+                att = f"wavefunctions/spin-down/{kpt[0] + 1}/field"
+        print("Reading *.h5 file ...")
+        filename = input+'.h5'
+        h = h5py.File(filename, mode="r")
+        print("Processing data ...")
+        fld = h[att][0:]
+        fld = np.transpose(fld, [i for i in range(fld.ndim - 1, -1, -1)])
+        fld = np.asfortranarray(fld)
+        fld = fld / ureg.bohr**1.5
+        fld = fld[::2, :] + 1j * fld[1::2, :]
+        fld.ito("angstrom ** -1.5")
+        if band[1] < fld.shape[-1]:
+            for i in range(band[0], band[1] + 1):
+                if i == band[0]:
+                    fld_i = fld[..., i].magnitude
+                else:
+                    fld_i += fld[..., i].magnitude
+            fld = fld_i
+        else:
+            raise Exception("The band is out of range in *.h5 file.")
+        f_abs = np.abs(fld)
+        f_div = np.where(np.abs(np.angle(fld)) < np.pi / 2, f_abs, -f_abs)
+        f_div = np.reshape(f_div, (f_div.shape[-1], -1), order='F').T
+    elif kpt_l == 2 and band_l == 2:
+        if not kpt[0] < kpt[1]:
+            raise Exception("Illegal input of kpt.")
+        if not band[0] < band[1]:
+            raise Exception("Illegal input of band.")
+        if not output:
+            output = input+'_'+str(kpt[0])+'-'+str(kpt[1])+'_'+str(band[0])+'-'+str(band[1])+'_'+str(spin)+'.vasp'
+        nkpts = kpt[1] - kpt[0] + 1
+        att = [''] * nkpts
+        for i in range(kpt[0], kpt[1] + 1):
+            if calc.system.hamiltonian.ispin == 1:
+                att[i] = f"wavefunctions/{i + 1}/field"
+            else:
+                if spin == 1:
+                    att[i] = f"wavefunctions/spin-up/{i + 1}/field"
+                else:
+                    att[i] = f"wavefunctions/spin-down/{i + 1}/field"
+        print("Reading *.h5 file ...")
+        filename = input+'.h5'
+        h = h5py.File(filename, mode="r")
+        print("Processing data ...")
+        for i in range(nkpts):
+            fld_i = h[att[i]][0:]
+            if i == 0:
+                fld = fld_i
+            else:
+                fld += fld_i
+        fld = np.transpose(fld, [i for i in range(fld.ndim - 1, -1, -1)])
+        fld = np.asfortranarray(fld)
+        fld = fld / ureg.bohr**1.5
+        fld = fld[::2, :] + 1j * fld[1::2, :]
+        fld.ito("angstrom ** -1.5")
+        if band[1] < fld.shape[-1]:
+            for i in range(band[0], band[1] + 1):
+                if i == band[0]:
+                    fld_i = fld[..., i].magnitude
+                else:
+                    fld_i += fld[..., i].magnitude
+            fld = fld_i
+        else:
+            raise Exception("The band is out of range in *.h5 file.")
+        f_abs = np.abs(fld)
+        f_div = np.where(np.abs(np.angle(fld)) < np.pi / 2, f_abs, -f_abs)
+        f_div = np.reshape(f_div, (f_div.shape[-1], -1), order='F').T
     else:
-        raise Exception("The band is out of range in *.h5 file.")
-    f_abs = np.abs(fld)
-    f_div = np.where(np.abs(np.angle(fld)) < np.pi / 2, f_abs, -f_abs)
-    f_div = np.reshape(f_div, (f_div.shape[-1], -1), order='F').T
+        raise Exception("Illegal input.")
+    print("Reading structure ...")
     pbc = [1, 1, 1]
     positions = calc.system.atoms.positions
     cell = calc.system.cell.avec
     elements_symbols = calc.system.atoms.get_labels()
     stp = ats(elements_symbols,positions=positions,cell=cell,pbc=pbc)
     grid = calc.system.cell.grid
+    print("Saving data to disk ...")
     write(output, stp, direct=True, vasp5=True)
     with open(output, "a") as f:
         f.writelines(['\n']+[str(i)+' ' for i in grid]+['\n'])
