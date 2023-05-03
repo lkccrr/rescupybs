@@ -10,6 +10,14 @@ plt.rcParams['ytick.direction'] = 'in'
 plt.rcParams['ytick.minor.visible'] = True
 plt.rcParams["mathtext.fontset"] = 'cm'
 
+class cla_fig:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            if isinstance(value, str):
+                exec('self.%s = "%s"' %(key, value))
+            else:
+                exec('self.%s = %s' %(key, value))
+
 def main():
     parser = argparse.ArgumentParser(description='Plot the band structure from rescuplus calculation result *.json or *.dat file.',
                                      epilog='''
@@ -25,15 +33,16 @@ rescubs -y -0.5 0.5 -b
     parser.add_argument('-a', "--location",   type=str.lower,        default='best',
                                                                      choices=['best', 'upper right', 'upper left', 'lower left', 'lower right', 'right', 'center left', 'center right', 'lower center', 'upper center', 'center'],
                                                                      help="arrange the legend location, default best")
-    parser.add_argument('-k', "--linestyle",  type=str, nargs='+',   default=['-'],
+    parser.add_argument('-k', "--linestyle",  type=str, nargs='+',   default=[],
                                                                      help="linestyle: solid, dashed, dashdot, dotted or tuple; default solid")
-    parser.add_argument('-w', "--linewidth",  type=str, nargs='+',   default=['0.8'], help="linewidth, default 0.8")
+    parser.add_argument('-w', "--linewidth",  type=str, nargs='+',   default=[], help="linewidth, default 0.8")
     parser.add_argument('-c', "--color",      type=str,              nargs='+', default=[],
-                                                                     help="plot colors: b, blue; g, green; r, red; c, cyan; m, magenta; y, yellow; k, black; w, white")
+                                                                     help="line color: b, blue; g, green; r, red; c, cyan; m, magenta; y, yellow; k, black; w, white")
     parser.add_argument('-m', "--modify",     type=int, nargs=2,     help='modify the bands overlap, the up or nonispin bands to exchange values')
     parser.add_argument('-n', "--nbands",     type=int, nargs=2,     help='the down bands to exchange values')
     parser.add_argument('-i', "--input",      type=str,              nargs='+', default=[], help="plot figure from .json or .dat file")
-    parser.add_argument('-o', "--output",     type=str,              default="BAND.png", help="plot figure filename")
+    parser.add_argument('-o', "--output",     type=str,              default="BAND.png", help="filename of the figure, default: BAND.png")
+    parser.add_argument('-q', "--dpi",        type=int,              default=500, help="dpi of the figure, default: 500")
     parser.add_argument('-l', "--labels",     type=str.upper,        nargs='+', default=[], help='labels for high-symmetry points')
     parser.add_argument('-f', "--font",       type=str,              default='STIXGeneral', help="font to use")
 
@@ -66,24 +75,21 @@ rescubs -y -0.5 0.5 -b
         else:
             color.append(i)
 
-    if not args.vertical:
-        vertical = [-5.0, 5.0]
-    else:
-        vertical = args.vertical
+    vertical = args.vertical or [-5.0, 5.0]
 
     plt.rcParams['font.family'] = '%s'%args.font
-    pltname = os.path.split(os.getcwd())[-1]
-    if not args.input:
-        input = ['nano_bs_out.json']
-        if not os.path.exists(input[0]):
-            raise Exception("The input file does not exist.")
-    else:
-        input = [f for i in args.input for f in glob.glob(i)]
-        input = [os.path.join(i,'nano_bs_out.json') if os.path.isdir(i) else i for i in input]
-        input = [i for i in input if os.path.exists(i)]
-        if not input:
-            raise Exception("The input file does not exist.")
 
+    pltname = os.path.split(os.getcwd())[-1]
+
+    input = args.input or ['nano_bs_out.json']
+    input = [f for i in input for f in glob.glob(i)]
+    input = [os.path.join(i,'nano_bs_out.json') if os.path.isdir(i) else i for i in input]
+    input = [i for i in input if os.path.exists(i)]
+    if not input:
+        raise Exception("The input file does not exist.")
+
+    fig_p = cla_fig(output=args.output, size=args.size, vertical=vertical,
+                    linestyle=linestyle, linewidth=linewidth, location=args.location, color=color, dpi=args.dpi)
     if len(input) == 1:
         if input[0].lower().endswith('.json'):
             if 'bs' in input[0].split('_'):
@@ -91,28 +97,24 @@ rescubs -y -0.5 0.5 -b
                 eigenvalues, chpts, labels = functions.bs_json_read(bs_file)
                 if labels_f:
                     labels = labels_f
-                legend = args.legend
-                if not legend:
-                    legend = [pltname]
+                legend = args.legend or [pltname]
                 if len(chpts) > len(labels):
                     labels = labels + [''] * (len(chpts) - len(labels))
                 elif len(chpts) < len(labels):
                     labels = labels[:len(chpts)]
                 if len(eigenvalues) == 1:
-                    plots.Nispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                    plots.Nispin(eigenvalues, chpts, labels, legend, fig_p)
                 elif len(eigenvalues) == 2 and not args.divided:
-                    plots.Ispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                    plots.Ispin(eigenvalues, chpts, labels, legend, fig_p)
                 elif len(eigenvalues) == 2 and args.divided:
-                    plots.Dispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                    plots.Dispin(eigenvalues, chpts, labels, legend, fig_p)
 
         elif input[0].lower().endswith('.dat'):
             eigenvalues = functions.bs_dat_read(input)
             chpts, labels, vbm_cbm = functions.labels_read("LABELS")
             if labels_f:
                 labels = labels_f
-            legend = args.legend
-            if not legend:
-                legend = [pltname]
+            legend = args.legend or [pltname]
             if len(chpts) > len(labels):
                 labels = labels + [''] * (len(chpts) - len(labels))
             elif len(chpts) < len(labels):
@@ -121,9 +123,9 @@ rescubs -y -0.5 0.5 -b
                 if args.modify[0] != args.modify[1]:
                     functions.exchange(eigenvalues[0,:,args.modify[0]], eigenvalues[0,:,args.modify[1]])
                     np.savetxt(input[0], eigenvalues[0])
-                plots.Mnispin(args.output, args.size, vertical, eigenvalues, chpts, labels, vbm_cbm, linestyle, linewidth)
+                plots.Mnispin(eigenvalues, chpts, labels, vbm_cbm, fig_p)
             else:
-                plots.Nispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                plots.Nispin(eigenvalues, chpts, labels, legend, fig_p)
 
     else:
         Extension = [f.rsplit('.', 1)[-1].lower() for f in input]
@@ -133,9 +135,7 @@ rescubs -y -0.5 0.5 -b
                 chpts, labels, vbm_cbm = functions.labels_read("LABELS")
                 if labels_f:
                     labels = labels_f
-                legend = args.legend
-                if not legend:
-                    legend = [pltname]
+                legend = args.legend or [pltname]
                 if len(chpts) > len(labels):
                     labels = labels + [''] * (len(chpts) - len(labels))
                 elif len(chpts) < len(labels):
@@ -147,29 +147,27 @@ rescubs -y -0.5 0.5 -b
                     if args.nbands and args.nbands[0] != args.nbands[1]:
                         functions.exchange(eigenvalues[0,:,args.nbands[0]], eigenvalues[0,:,args.nbands[1]])
                         np.savetxt(input[1], eigenvalues[1])
-                    plots.Mispin(args.output, args.size, vertical, eigenvalues, chpts, labels, vbm_cbm, linestyle, linewidth)
+                    plots.Mispin(eigenvalues, chpts, labels, vbm_cbm, fig_p)
                 else:
                     if len(eigenvalues) == 2 and not args.divided:
-                        plots.Ispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                        plots.Ispin(eigenvalues, chpts, labels, legend, fig_p)
                     elif len(eigenvalues) == 2 and args.divided:
-                        plots.Dispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                        plots.Dispin(eigenvalues, chpts, labels, legend, fig_p)
             elif Extension[0] == 'json' and all('bs' in f.split('_') for f in input):
                 eigenvalues, chpts, labels = functions.bs_json_read_all(input)
                 if labels_f:
                     labels = labels_f
-                legend = args.legend
-                if not legend:
-                    legend = [pltname]
+                legend = args.legend or [pltname]
                 if len(chpts) > len(labels):
                     labels = labels + [''] * (len(chpts) - len(labels))
                 elif len(chpts) < len(labels):
                     labels = labels[:len(chpts)]
                 if len(eigenvalues) == 1:
-                    plots.Nispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                    plots.Nispin(eigenvalues, chpts, labels, legend, fig_p)
                 elif len(eigenvalues) == 2 and not args.divided:
-                    plots.Ispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                    plots.Ispin(eigenvalues, chpts, labels, legend, fig_p)
                 elif len(eigenvalues) == 2 and args.divided:
-                    plots.Dispin(args.output, args.size, vertical, eigenvalues, chpts, labels, linestyle, linewidth, legend, args.location, color)
+                    plots.Dispin(eigenvalues, chpts, labels, legend, fig_p)
         else:
             raise Exception("The input files mismatch.")
 
@@ -189,22 +187,16 @@ rescuiso -b 1 -k 0
 
     args = parser.parse_args()
 
-    if args.kpt[0] < 0:
+    if args.kpt[0] < 0 or args.band[0] < 0:
         raise Exception("Illegal input of kpt.")
-    if args.band[0] < 0:
-        raise Exception("Illegal input of band.")
 
-    if not args.input:
-        input = ['nano_wvf_out']
-        if not os.path.exists(input[0]+'.json') and not os.path.exists(input[0]+'.h5'):
-            raise Exception("The input file does not exist.")
-    else:
-        input = [f.rsplit('_in',1)[0]+'_out.json' if f.rsplit('.',1)[0].endswith('in') else f for i in args.input for f in glob.glob(i)]
-        input = [os.path.join(i,'nano_wvf_out.json') if os.path.isdir(i) else i for i in input]
-        input = [i.rsplit('.',1)[0] for i in input]
-        input = [i for i in input if os.path.exists(i+'.json') and os.path.exists(i+'.h5')]
-        if not input:
-            raise Exception("The input file does not exist.")
+    input = args.input or ['nano_wvf_out.json']
+    input = [f.rsplit('_in',1)[0]+'_out.json' if f.rsplit('.',1)[0].endswith('in') else f for i in input for f in glob.glob(i)]
+    input = [os.path.join(i,'nano_wvf_out.json') if os.path.isdir(i) else i for i in input]
+    input = [i.rsplit('.',1)[0] for i in input]
+    input = [i for i in input if os.path.exists(i+'.json') and os.path.exists(i+'.h5')]
+    if not input:
+        raise Exception("The input file does not exist.")
 
     if len(input) == 1:
         if 'wvf' in input[0].split('_'):
