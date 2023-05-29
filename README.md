@@ -24,6 +24,6 @@ rescubs -b -l g m k g -y -1.2 1.2
 * Example:
 ```bash
 rescuiso -h
-rescuiso -i nano_wvf_out.json -k 2 -b 2
+rescuiso -i nano_wvf_out.json -k 1 4 -b 0 3
 ```
  

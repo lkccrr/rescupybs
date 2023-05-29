@@ -152,6 +152,35 @@ def get_vbm_cbm(eigenvalues_s):
     i, cb = np.where(eigenvalues_s==min)
     return vb[0], max, cb[0], min
 
+def dos(filename):
+    from rescupy import DensityOfStates as DOS
+    from rescupy.jsonio import json_read
+    calc = DOS.from_totalenergy(filename)
+    calc.set_units('atomic')
+    cal  = json_read(filename)
+    calc.dos.dos = np.array([cal['dos']['dos']]).T
+    calc.dos.energy = np.array(cal['dos']['energy'])
+    calc.dos.efermi = cal['dos']['efermi']
+    if cal['dos']['pdos_return']:
+        calc.dos.orbA = cal['dos']['orbA']
+        calc.dos.orbL = cal['dos']['orbL']
+        calc.dos.orbM = cal['dos']['orbM']
+        h5name = filename.rsplit('.json')[0] + '.h5'
+        h = h5py.File(h5name, mode="r")
+        fld = h['dos']['pdos']['total'][0:]
+        fld = np.transpose(fld, [i for i in range(fld.ndim - 1, -1, -1)])
+        calc.dos.pdos = fld
+        calc.dos.pdos_return = cal['dos']['pdos_return']
+    calc.set_units('si')
+    return calc
+
+def tdos(dosfiles):
+    calc = dos(dosfiles)
+    arr = calc.dos.energy
+    efe = calc.dos.efermi
+    ele = calc.dos.dos
+    return arr - efe, ele
+
 # rescuiso
 
 def isosurfaces_wf(input, output, kpt, band, spin):
@@ -315,3 +344,33 @@ def isosurfaces_wf(input, output, kpt, band, spin):
         f.writelines(['\n']+[str(i)+' ' for i in grid]+['\n'])
         np.savetxt(f, f_div)
 
+def isosurfaces_dos(input, output):
+    calc = TotalEnergy.read(input+'.json')
+    if not output:
+        output = input+'.vasp'
+    att = f"density/total"
+    print("Reading *.h5 file ...")
+    filename = input+'.h5'
+    h = h5py.File(filename, mode="r")
+    print("Processing data ...")
+    fld = h[att][0:]
+    fld = np.transpose(fld, [i for i in range(fld.ndim - 1, -1, -1)])
+    fld = np.asfortranarray(fld)
+    fld = fld / ureg.bohr**3
+    fld.ito("angstrom ** -3")
+    fld = fld.magnitude
+    f_abs = np.abs(fld)
+    f_div = np.where(np.abs(np.angle(fld)) < np.pi / 2, f_abs, -f_abs)
+    f_div = np.reshape(f_div, (f_div.shape[-1], -1), order='F').T
+    print("Reading structure ...")
+    pbc = [1, 1, 1]
+    positions = calc.system.atoms.positions
+    cell = calc.system.cell.avec
+    elements_symbols = calc.system.atoms.get_labels()
+    stp = ats(elements_symbols,positions=positions,cell=cell,pbc=pbc)
+    grid = calc.system.cell.grid
+    print("Saving data to disk ...")
+    write(output, stp, direct=True, vasp5=True)
+    with open(output, "a") as f:
+        f.writelines(['\n']+[str(i)+' ' for i in grid]+['\n'])
+        np.savetxt(f, f_div)

@@ -8,10 +8,10 @@ setup(
     author_email='luokan@hrbeu.edu.cn',
     python_requires='>=3.8',
     license='MIT',
-    license_files=('LICENSE',),
+    license_files=('LICENSE'),
     platforms=['Unix', 'Windows'],
-    keywords='DFT rescuplus band plot',
-    description='Band structure plot from rescuplus json file.',
+    keywords='DFT rescuplus band plot wavefunction',
+    description='Band structure plot and wavefunction export from rescuplus *.json and *.h5 file.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/lkccrr/rescupybs',
@@ -23,7 +23,8 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11'
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12'
     ],
     install_requires=[
         'numpy>=1.22.0,<1.24',
@@ -38,3 +39,4 @@ setup(
     packages=find_packages(),
     include_package_data=True
 )
+

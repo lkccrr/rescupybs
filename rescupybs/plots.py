@@ -135,3 +135,20 @@ def Mispin(eigenvalues, chpts, labels, vbm_cbm, fig_p):
     ax1.axhline(linewidth=0.4, linestyle='-.', c='gray')
     ax2.axhline(linewidth=0.4, linestyle='-.', c='gray')
     plt.savefig(fig_p.output, dpi=fig_p.dpi, transparent=True, bbox_inches='tight')
+
+def tdos(arr, ele, fig_p):
+    plt.figure(figsize=fig_p.size)
+    plt.minorticks_on()
+    plt.tick_params(axis='both', which='minor', color='gray')
+    plt.plot(arr, ele)
+    plt.xlim(fig_p.vertical)
+    plt.ylim(fig_p.horizontal)
+    plt.xlabel('Energy (eV)')
+    plt.ylabel('Density of states, electrons/eV')
+    plt.axvline(linewidth=0.4, linestyle='-.', c='gray')
+    plt.axhline(linewidth=0.4, linestyle='-.', c='gray')
+#    plt.legend(p_dos, elements, frameon=False, prop={'size':'medium'}, loc=fig_p.location)
+    plt.savefig(fig_p.output, dpi=fig_p.dpi, transparent=True, bbox_inches='tight')
+    
+    
+

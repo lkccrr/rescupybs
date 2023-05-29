@@ -25,57 +25,68 @@ Example:
 rescubs -y -0.5 0.5 -b
 ''',
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('-v', "--version",    action="version",      version="rescupybs "+__version__+" from "+os.path.dirname(__file__)+' (python'+platform.python_version()+')')
-    parser.add_argument('-s', "--size",       type=float, nargs=2,   help='figure size: width, height')
-    parser.add_argument('-b', "--divided",    action='store_true',   help="plot the up and down spin in divided subplot")
-    parser.add_argument('-y', "--vertical",   type=float, nargs=2,   help="vertical axis")
-    parser.add_argument('-g', "--legend",     type=str,   nargs=1,   help="legend labels")
-    parser.add_argument('-a', "--location",   type=str.lower,        default='best',
-                                                                     choices=['best', 'upper right', 'upper left', 'lower left', 'lower right', 'right', 'center left', 'center right', 'lower center', 'upper center', 'center'],
-                                                                     help="arrange the legend location, default best")
-    parser.add_argument('-k', "--linestyle",  type=str, nargs='+',   default=[],
-                                                                     help="linestyle: solid, dashed, dashdot, dotted or tuple; default solid")
-    parser.add_argument('-w', "--linewidth",  type=str, nargs='+',   default=[], help="linewidth, default 0.8")
-    parser.add_argument('-c', "--color",      type=str,              nargs='+', default=[],
-                                                                     help="line color: b, blue; g, green; r, red; c, cyan; m, magenta; y, yellow; k, black; w, white")
-    parser.add_argument('-m', "--modify",     type=int, nargs=2,     help='modify the bands overlap, the up or nonispin bands to exchange values')
-    parser.add_argument('-n', "--nbands",     type=int, nargs=2,     help='the down bands to exchange values')
-    parser.add_argument('-i', "--input",      type=str,              nargs='+', default=[], help="plot figure from .json or .dat file")
-    parser.add_argument('-o', "--output",     type=str,              default="BAND.png", help="filename of the figure, default: BAND.png")
-    parser.add_argument('-q', "--dpi",        type=int,              default=500, help="dpi of the figure, default: 500")
-    parser.add_argument('-l', "--labels",     type=str.upper,        nargs='+', default=[], help='labels for high-symmetry points')
-    parser.add_argument('-f', "--font",       type=str,              default='STIXGeneral', help="font to use")
+    parser.add_argument('-v', "--version",    action="version",     version="rescupybs "+__version__+" from "+os.path.dirname(__file__)+' (python'+platform.python_version()+')')
+    parser.add_argument('-s', "--size",       type=float, nargs=2,  help='figure size: width, height')
+    parser.add_argument('-b', "--divided",    action='store_true',  help="plot the up and down spin in divided subplot")
+    parser.add_argument('-y', "--vertical",   type=float, nargs=2,  help="vertical axis")
+    parser.add_argument('-g', "--legend",     type=str,   nargs=1,  help="legend labels")
+    parser.add_argument('-L', "--location",   type=str.lower,       default='best',
+                                                                    choices=['best', 'upper right', 'upper left', 'lower left', 'lower right', 'right', 'center left', 'center right', 'lower center', 'upper center', 'center'],
+                                                                    help="arrange the legend location, default best")
+    parser.add_argument('-c', "--color",      type=str,             nargs='+', help="line color: b, blue; g, green; r, red; c, cyan; m, magenta; y, yellow;"+
+                                                                                    "k, black; w, white", default=[])
+    parser.add_argument('-k', "--linestyle",  type=str,             nargs='+', help="linestyle: solid, dashed, dashdot, dotted or tuple; default: solid",
+                                                                                    default=[])
+    parser.add_argument('-w', "--linewidth",  type=str,             nargs='+', help="linewidth, default: 0.8", default=[])
+    parser.add_argument('-m', "--modify",     type=int, nargs=2,    help='modify the bands overlap, the up or nonispin bands to exchange values')
+    parser.add_argument('-n', "--nbands",     type=int, nargs=2,    help='the down bands to exchange values')
+    parser.add_argument('-i', "--input",      type=str,             nargs='+', default=[], help="plot figure from .json or .dat file")
+    parser.add_argument('-o', "--output",     type=str,             default="BAND.png", help="filename of the figure, default: BAND.png")
+    parser.add_argument('-q', "--dpi",        type=int,             default=500, help="dpi of the figure, default: 500")
+    parser.add_argument('-l', "--labels",     type=str.upper,       nargs='+', default=[], help='labels for high-symmetry points')
+    parser.add_argument('-d', "--dos",        type=str,             nargs='?', default='', help="plot DOS from .json file, default: nano_dos_out.json")
+    parser.add_argument('-x', "--horizontal", type=float, nargs=2,  help="Density of states, electrons/eV range")
+    parser.add_argument('-a', "--exchange",   action='store_true',  help="exchange the x and y axes of DOS")
+    parser.add_argument('-p', "--partial",    type=str,             nargs='+', default=[], help='the partial DOS to plot, s p d')
+    parser.add_argument('-e', "--elements",   type=str,             nargs='+', default=[], help="PDOS labels")
+    parser.add_argument('-W', "--wratios",    type=float,           help='width ratio for DOS subplot')
+    parser.add_argument('-z', "--fill",       type=float,           nargs='*', help='fill a shaded region between PDOS and axis, default: 0.2', default=None)
+    parser.add_argument('-f', "--font",       type=str,             default='STIXGeneral', help="font to use")
 
     args = parser.parse_args()
 
     labels_f = [re.sub("'|‘|’", '′', re.sub('"|“|”', '″', re.sub('^GA[A-Z]+$|^G$', 'Γ', i))) for i in args.labels]
-    linestyle = []
-    for i in args.linestyle:
-        if len(i) > 2 and i[0] == '(' and i[-1] == ')':
-            linestyle.append(eval(i))
-        elif len(i.split('*')) == 2:
-            j = i.split('*')
-            linestyle = linestyle + [j[0]] * int(j[1])
-        else:
-            linestyle.append(i)
-
-    linewidth = []
-    for i in args.linewidth:
-        if len(i.split('*')) == 2:
-            j = i.split('*')
-            linewidth = linewidth + [float(j[0])] * int(j[1])
-        else:
-            linewidth.append(float(i))
+    elements = [re.sub("'|‘|’", '′', re.sub('"|“|”', '″', i)) for i in args.elements]
+    if args.dos != '':
+        dosfiles = args.dos or 'nano_dos_out.json'
+        if dosfiles.rsplit('.',1)[0].endswith('_in'):
+            dosfiles = dosfiles.rsplit('_in',1)[0]+'_out.json'
+        if os.path.isdir(dosfiles):
+            dosfiles = os.path.join(dosfiles, 'nano_dos_out.json')
+        dosfiles = dosfiles if os.path.exists(dosfiles) else None
+    else:
+        dosfiles = None
 
     color = []
     for i in args.color:
         j = i.split('*')
         if len(j) == 2:
-            color = color + [j[0]] * int(j[1])
+            color += [ast.literal_eval(j[0])] * int(j[1]) if '(' in j[0] and ')' in j[0] else [j[0]] * int(j[1])
         else:
-            color.append(i)
+            color += [ast.literal_eval(i)] if '(' in i and ')' in i else [i]
 
-    vertical = args.vertical or [-5.0, 5.0]
+    linestyle = []
+    for i in args.linestyle:
+        j = i.split('*')
+        if len(j) == 2:
+            linestyle += [ast.literal_eval(j[0])] * int(j[1]) if '(' in j[0] and ')' in j[0] else [j[0]] * int(j[1])
+        else:
+            linestyle += [ast.literal_eval(i)] if '(' in i and ')' in i else [i]
+
+    linewidth = []
+    for i in args.linewidth:
+        j = i.split('*')
+        linewidth += [float(j[0])] * int(j[1]) if len(j) == 2 else [float(i)]
 
     plt.rcParams['font.family'] = '%s'%args.font
 
@@ -85,12 +96,17 @@ rescubs -y -0.5 0.5 -b
     input = [f for i in input for f in glob.glob(i)]
     input = [os.path.join(i,'nano_bs_out.json') if os.path.isdir(i) else i for i in input]
     input = [i for i in input if os.path.exists(i)]
-    if not input:
-        raise Exception("The input file does not exist.")
 
-    fig_p = cla_fig(output=args.output, size=args.size, vertical=vertical,
-                    linestyle=linestyle, linewidth=linewidth, location=args.location, color=color, dpi=args.dpi)
-    if len(input) == 1:
+    width_ratios = args.wratios or (0.3 if args.divided else 0.5)
+
+    fig_p = cla_fig(output=args.output, size=args.size, vertical=args.vertical, horizontal=args.horizontal,
+                    color=color, linestyle=linestyle, linewidth=linewidth, location=args.location, dpi=args.dpi)
+
+    len_bandfile = len(input)
+# plot Band Structure
+    if len_bandfile == 1:
+        if not fig_p.vertical:
+            fig_p.vertical = [-5.0, 5.0]
         if input[0].lower().endswith('.json'):
             if 'bs' in input[0].split('_'):
                 bs_file = input[0]
@@ -127,7 +143,9 @@ rescubs -y -0.5 0.5 -b
             else:
                 plots.Nispin(eigenvalues, chpts, labels, legend, fig_p)
 
-    else:
+    elif len_bandfile == 2:
+        if not fig_p.vertical:
+            fig_p.vertical = [-5.0, 5.0]
         Extension = [f.rsplit('.', 1)[-1].lower() for f in input]
         if all(x == Extension[0] for x in Extension):
             if len(input) == 2 and Extension[0] == 'dat':
@@ -170,6 +188,17 @@ rescubs -y -0.5 0.5 -b
                     plots.Dispin(eigenvalues, chpts, labels, legend, fig_p)
         else:
             raise Exception("The input files mismatch.")
+# plot DOS
+    elif len_bandfile == 0:
+        if dosfiles:
+            if fig_p.output == "BAND.png":
+                fig_p.output = "DOS.png"
+            arr, ele = functions.tdos(dosfiles)
+            plots.tdos(arr, ele, fig_p)
+        else:
+            print("ERROR: No *dos_out.json file.")
+    else:
+        print("Input file mismatch.")
 
 def surface():
     parser = argparse.ArgumentParser(description='Export the wavefunction isosurface for VESTA from rescuplus calculation result *.json and *.h5 files.',
@@ -201,6 +230,8 @@ rescuiso -b 1 -k 0
     if len(input) == 1:
         if 'wvf' in input[0].split('_'):
             functions.isosurfaces_wf(input[0], args.output, args.kpt, args.band, args.spin)
+        elif 'dos' in input[0].split('_'):
+            functions.isosurfaces_dos(input[0], args.output)
     else:
         if all('wvf' in f.split('_') for f in input):
             for i in range(len(input)):
