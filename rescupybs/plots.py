@@ -136,19 +136,45 @@ def Mispin(eigenvalues, chpts, labels, vbm_cbm, fig_p):
     ax2.axhline(linewidth=0.4, linestyle='-.', c='gray')
     plt.savefig(fig_p.output, dpi=fig_p.dpi, transparent=True, bbox_inches='tight')
 
-def tdos(arr, ele, fig_p):
+def tdos(arr, ele, legend, fig_p):
     plt.figure(figsize=fig_p.size)
     plt.minorticks_on()
     plt.tick_params(axis='both', which='minor', color='gray')
-    plt.plot(arr, ele)
-    plt.xlim(fig_p.vertical)
-    plt.ylim(fig_p.horizontal)
-    plt.xlabel('Energy (eV)')
-    plt.ylabel('Density of states, electrons/eV')
+    color = fig_p.color or ['']
+    linestyle = fig_p.linestyle or ['-']
+    linewidth = fig_p.linewidth or [0.8]
+    if fig_p.exchange:
+        if color[0]:
+            plt.plot(arr, ele[:,0], linewidth=linewidth[0], linestyle=linestyle[0], color=color[0])
+            if fig_p.fill:
+                plt.fill_between(arr, ele[:,0], 0, color=color[0], alpha=fig_p.fill)
+        else:
+            plt.plot(arr, ele[:,0], linewidth=linewidth[0], linestyle=linestyle[0])
+            if fig_p.fill:
+                plt.fill_between(arr, ele[:,0], 0, alpha=fig_p.fill)
+        plt.tick_params(axis='y', labelsize='medium', labelcolor='dimgray')
+        plt.xlim(fig_p.vertical)
+        plt.ylim(fig_p.horizontal)
+        plt.xlabel('Energy (eV)')
+        plt.ylabel('Density of states, electrons/eV')
+    else:
+        if color[0]:
+            plt.plot(ele[:,0], arr, linewidth=linewidth[0], linestyle=linestyle[0], color=color[0])
+            if fig_p.fill:
+                plt.fill_betweenx(arr, ele[:,0], 0, color=color[0], alpha=fig_p.fill)
+        else:
+            plt.plot(ele[:,0], arr, linewidth=linewidth[0], linestyle=linestyle[0])
+            if fig_p.fill:
+                plt.fill_betweenx(arr, ele[:,0], 0, alpha=fig_p.fill)
+        plt.tick_params(axis='x', labelsize='medium', labelcolor='dimgray')
+        plt.ylim(fig_p.vertical)
+        plt.xlim(fig_p.horizontal)
+        plt.ylabel('Energy (eV)')
+        plt.xlabel('Density of states, electrons/eV')
+    L = plt.legend([], frameon=False, loc=fig_p.location, title=legend[0], title_fontproperties={'size':'medium'})
+    plt.gca().add_artist(L)
     plt.axvline(linewidth=0.4, linestyle='-.', c='gray')
     plt.axhline(linewidth=0.4, linestyle='-.', c='gray')
-#    plt.legend(p_dos, elements, frameon=False, prop={'size':'medium'}, loc=fig_p.location)
     plt.savefig(fig_p.output, dpi=fig_p.dpi, transparent=True, bbox_inches='tight')
-    
-    
+
 

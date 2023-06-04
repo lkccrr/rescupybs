@@ -50,7 +50,8 @@ rescubs -y -0.5 0.5 -b
     parser.add_argument('-p', "--partial",    type=str,             nargs='+', default=[], help='the partial DOS to plot, s p d')
     parser.add_argument('-e', "--elements",   type=str,             nargs='+', default=[], help="PDOS labels")
     parser.add_argument('-W', "--wratios",    type=float,           help='width ratio for DOS subplot')
-    parser.add_argument('-z', "--fill",       type=float,           nargs='*', help='fill a shaded region between PDOS and axis, default: 0.2', default=None)
+    parser.add_argument('-z', "--fill",       type=float,           nargs='?', help='fill a shaded region between PDOS and axis, default: 0.2', default=None,
+                                                                                    const=0.2, metavar="alpha")
     parser.add_argument('-f', "--font",       type=str,             default='STIXGeneral', help="font to use")
 
     args = parser.parse_args()
@@ -100,7 +101,8 @@ rescubs -y -0.5 0.5 -b
     width_ratios = args.wratios or (0.3 if args.divided else 0.5)
 
     fig_p = cla_fig(output=args.output, size=args.size, vertical=args.vertical, horizontal=args.horizontal,
-                    color=color, linestyle=linestyle, linewidth=linewidth, location=args.location, dpi=args.dpi)
+                    color=color, linestyle=linestyle, linewidth=linewidth, location=args.location, dpi=args.dpi,
+                    width_ratios=width_ratios, exchange=args.exchange, fill=args.fill)
 
     len_bandfile = len(input)
 # plot Band Structure
@@ -193,12 +195,32 @@ rescubs -y -0.5 0.5 -b
         if dosfiles:
             if fig_p.output == "BAND.png":
                 fig_p.output = "DOS.png"
+            legend = args.legend or [pltname]
             arr, ele = functions.tdos(dosfiles)
-            plots.tdos(arr, ele, fig_p)
+            plots.tdos(arr, ele, legend, fig_p)
         else:
             print("ERROR: No *dos_out.json file.")
     else:
-        print("Input file mismatch.")
+        if not fig_p.vertical:
+            fig_p.vertical = [-5.0, 5.0]
+        Extension = [f.rsplit('.', 1)[-1].lower() for f in input]
+        if all(x == Extension[0] for x in Extension) and Extension[0] == 'json' and all('bs' in f.split('_') for f in input):
+            eigenvalues, chpts, labels = functions.bs_json_read_all(input)
+            if labels_f:
+                labels = labels_f
+            legend = args.legend or [pltname]
+            if len(chpts) > len(labels):
+                labels = labels + [''] * (len(chpts) - len(labels))
+            elif len(chpts) < len(labels):
+                labels = labels[:len(chpts)]
+            if len(eigenvalues) == 1:
+                plots.Nispin(eigenvalues, chpts, labels, legend, fig_p)
+            elif len(eigenvalues) == 2 and not args.divided:
+                plots.Ispin(eigenvalues, chpts, labels, legend, fig_p)
+            elif len(eigenvalues) == 2 and args.divided:
+                plots.Dispin(eigenvalues, chpts, labels, legend, fig_p)
+        else:
+            print("Input file mismatch.")
 
 def surface():
     parser = argparse.ArgumentParser(description='Export the wavefunction isosurface for VESTA from rescuplus calculation result *.json and *.h5 files.',
