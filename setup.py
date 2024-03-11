@@ -5,7 +5,7 @@ setup(
     name='rescupybs',
     version=__version__,
     author='kan',
-    author_email='luokan@hrbeu.edu.cn',
+    author_email='luo_kan+pypi@outlook.com',
     python_requires='>=3.8',
     license='MIT',
     license_files=('LICENSE'),
@@ -27,10 +27,9 @@ setup(
         'Programming Language :: Python :: 3.12'
     ],
     install_requires=[
-        'numpy>=1.22.0,<1.24',
+        'numpy>=1.22.0',
         'matplotlib>=3.4.0',
-        'pint>=0.10',
-        'rescupy>=1.0.0'
+        'pint>=0.10'
     ],
     entry_points={
         'console_scripts': ['rescubs=rescupybs.wrapper:main',

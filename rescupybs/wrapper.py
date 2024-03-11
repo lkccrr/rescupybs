@@ -105,28 +105,24 @@ rescubs -y -0.5 0.5 -b
                     width_ratios=width_ratios, exchange=args.exchange, fill=args.fill)
 
     len_bandfile = len(input)
-# plot Band Structure
-    if len_bandfile == 1:
-        if not fig_p.vertical:
-            fig_p.vertical = [-5.0, 5.0]
-        if input[0].lower().endswith('.json'):
-            if 'bs' in input[0].split('_'):
-                bs_file = input[0]
-                eigenvalues, chpts, labels = functions.bs_json_read(bs_file)
-                if labels_f:
-                    labels = labels_f
-                legend = args.legend or [pltname]
-                if len(chpts) > len(labels):
-                    labels = labels + [''] * (len(chpts) - len(labels))
-                elif len(chpts) < len(labels):
-                    labels = labels[:len(chpts)]
-                if len(eigenvalues) == 1:
-                    plots.Nispin(eigenvalues, chpts, labels, legend, fig_p)
-                elif len(eigenvalues) == 2 and not args.divided:
-                    plots.Ispin(eigenvalues, chpts, labels, legend, fig_p)
-                elif len(eigenvalues) == 2 and args.divided:
-                    plots.Dispin(eigenvalues, chpts, labels, legend, fig_p)
+    if not fig_p.vertical: fig_p.vertical = [-5.0, 5.0]
 
+    if len_bandfile == 0:
+        # plot DOS
+        if dosfiles:
+            if fig_p.output == "BAND.png": fig_p.output = "DOS.png"
+            legend = args.legend or [pltname]
+            arr, ele = functions.tdos(dosfiles)
+            plots.tdos(arr, ele, legend, fig_p)
+        else:
+            print("ERROR: No *dos_out.json file.")
+
+    elif len_bandfile == 1:
+        # generate Band Structure *.dat file
+        if input[0].lower().endswith('.json') and 'bs' in input[0].split('_'):
+            bs_file = input[0]
+            eigenvalues, chpts, labels = functions.bs_json_read(bs_file)
+        # plot Band Structure
         elif input[0].lower().endswith('.dat'):
             eigenvalues = functions.bs_dat_read(input)
             chpts, labels, vbm_cbm = functions.labels_read("LABELS")
@@ -146,10 +142,9 @@ rescubs -y -0.5 0.5 -b
                 plots.Nispin(eigenvalues, chpts, labels, legend, fig_p)
 
     elif len_bandfile == 2:
-        if not fig_p.vertical:
-            fig_p.vertical = [-5.0, 5.0]
         Extension = [f.rsplit('.', 1)[-1].lower() for f in input]
         if all(x == Extension[0] for x in Extension):
+            # plot Band Structure
             if len(input) == 2 and Extension[0] == 'dat':
                 eigenvalues = functions.bs_dat_read(input)
                 chpts, labels, vbm_cbm = functions.labels_read("LABELS")
@@ -173,52 +168,16 @@ rescubs -y -0.5 0.5 -b
                         plots.Ispin(eigenvalues, chpts, labels, legend, fig_p)
                     elif len(eigenvalues) == 2 and args.divided:
                         plots.Dispin(eigenvalues, chpts, labels, legend, fig_p)
+            # generate Band Structure *.dat file
             elif Extension[0] == 'json' and all('bs' in f.split('_') for f in input):
                 eigenvalues, chpts, labels = functions.bs_json_read_all(input)
-                if labels_f:
-                    labels = labels_f
-                legend = args.legend or [pltname]
-                if len(chpts) > len(labels):
-                    labels = labels + [''] * (len(chpts) - len(labels))
-                elif len(chpts) < len(labels):
-                    labels = labels[:len(chpts)]
-                if len(eigenvalues) == 1:
-                    plots.Nispin(eigenvalues, chpts, labels, legend, fig_p)
-                elif len(eigenvalues) == 2 and not args.divided:
-                    plots.Ispin(eigenvalues, chpts, labels, legend, fig_p)
-                elif len(eigenvalues) == 2 and args.divided:
-                    plots.Dispin(eigenvalues, chpts, labels, legend, fig_p)
         else:
             raise Exception("The input files mismatch.")
-# plot DOS
-    elif len_bandfile == 0:
-        if dosfiles:
-            if fig_p.output == "BAND.png":
-                fig_p.output = "DOS.png"
-            legend = args.legend or [pltname]
-            arr, ele = functions.tdos(dosfiles)
-            plots.tdos(arr, ele, legend, fig_p)
-        else:
-            print("ERROR: No *dos_out.json file.")
     else:
-        if not fig_p.vertical:
-            fig_p.vertical = [-5.0, 5.0]
         Extension = [f.rsplit('.', 1)[-1].lower() for f in input]
+        # generate Band Structure *.dat file
         if all(x == Extension[0] for x in Extension) and Extension[0] == 'json' and all('bs' in f.split('_') for f in input):
             eigenvalues, chpts, labels = functions.bs_json_read_all(input)
-            if labels_f:
-                labels = labels_f
-            legend = args.legend or [pltname]
-            if len(chpts) > len(labels):
-                labels = labels + [''] * (len(chpts) - len(labels))
-            elif len(chpts) < len(labels):
-                labels = labels[:len(chpts)]
-            if len(eigenvalues) == 1:
-                plots.Nispin(eigenvalues, chpts, labels, legend, fig_p)
-            elif len(eigenvalues) == 2 and not args.divided:
-                plots.Ispin(eigenvalues, chpts, labels, legend, fig_p)
-            elif len(eigenvalues) == 2 and args.divided:
-                plots.Dispin(eigenvalues, chpts, labels, legend, fig_p)
         else:
             print("Input file mismatch.")
 
